@@ -40,12 +40,12 @@ void rc6_setkey(RC6_KEY *key, void *K, uint32_t keylen)
 
 void rc6_crypt(RC6_KEY *key, void *input, void *output, int enc)
 {
-  rc6_blk *in, *out;
+  rc6_blk *in, *enc_plain;
   uint32_t A, B, C, D, T0, T1, i;
   uint32_t *k=(uint32_t*)key->x;
   
   in =(rc6_blk*)input;
-  out=(rc6_blk*)output;
+  enc_plain=(rc6_blk*)output;
   
   // load plaintext/ciphertext
   A=in->v32[0];
@@ -102,8 +102,8 @@ void rc6_crypt(RC6_KEY *key, void *input, void *output, int enc)
     B -= *k; k--;
   }
   // save plaintext/ciphertext
-  out->v32[0]=A;
-  out->v32[1]=B;
-  out->v32[2]=C;
-  out->v32[3]=D;
+  enc_plain->v32[0]=A;
+  enc_plain->v32[1]=B;
+  enc_plain->v32[2]=C;
+  enc_plain->v32[3]=D;
 }
