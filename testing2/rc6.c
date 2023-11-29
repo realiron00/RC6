@@ -49,14 +49,20 @@ void rc6_crypt(RC6_KEY *key, void *input, void *output, int enc)
   
   // load plaintext/ciphertext
   A=in->v32[0];
+  printf("A: %08x\n", A);
   B=in->v32[1];
+  printf("B: %08x\n", B);
   C=in->v32[2];
+  printf("C: %08x\n", C);
   D=in->v32[3];
+  printf("D: %08x\n", D);
   
   if (enc==RC6_ENCRYPT)
   {
     B += *k; k++;
+    printf("B: %08x\n", B);
     D += *k; k++;
+    printf("D: %08x\n", D);
   } else {
     k += 43;
     C -= *k; k--;
@@ -101,9 +107,58 @@ void rc6_crypt(RC6_KEY *key, void *input, void *output, int enc)
     D -= *k; k--;
     B -= *k; k--;
   }
+  printf("A: %08x\n", A);
+    printf("B: %08x\n", B);
+    printf("C: %08x\n", C);
+    printf("D: %08x\n", D);
+
+
   // save plaintext/ciphertext
   enc_plain->v32[0]=A;
   enc_plain->v32[1]=B;
   enc_plain->v32[2]=C;
   enc_plain->v32[3]=D;
+}
+
+int main() {
+    // 키와 평문 설정
+    uint8_t key[] = {0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    uint8_t plaintext[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    uint8_t ciphertext[16]; // 암호문 저장
+    
+    // RC6 키 설정
+    RC6_KEY key_schedule;
+    rc6_setkey(&key_schedule, key, 16); // 키 길이는 16바이트
+    
+    printf("key: ");
+    for (int i = 0; i < 16; ++i) {
+        printf("%02X ", key[i]);
+    }
+    printf("\n");
+
+    printf("key schedule: ");
+    for (int i = 0; i < 44; ++i) {
+        printf("%08X ", key_schedule.x[i]);
+    }
+    printf("\n");
+    // 평문 출력
+    printf("plain: ");
+    for (int i = 0; i < 16; ++i) {
+        printf("%02X ", plaintext[i]);
+    }
+    printf("\n");
+    
+    // 평문을 암호화
+    rc6_crypt(&key_schedule, plaintext, ciphertext, RC6_ENCRYPT);
+    
+    // 암호문 출력
+    printf("cipher: ");
+    for (int i = 0; i < 16; ++i) {
+        printf("%02X ", ciphertext[i]);
+    }
+    printf("\n");
+    
+    return 0;
 }
