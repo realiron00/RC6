@@ -47,21 +47,14 @@ void rc6_encrypt(uint32_t* key, void* input, void* output)
     uint32_t A, B, C, D, T0, T1, i;
     uint32_t* k = (uint32_t*)key;
     uint32_t* in = (uint32_t*)input;
-    uint32_t* out = (uint32_t*)output;
 
     A = in[0];
-    printf("A: %08x\n", A);
     B = in[1];
-    printf("B: %08x\n", B);
     C = in[2];
-    printf("C: %08x\n", C);
     D = in[3];
-    printf("D: %08x\n", D);
 
     B += *k; k++;
-    printf("B: %08x\n", B);
     D += *k; k++;
-    printf("D: %08x\n", D);
 
     for(i = 0; i < ROUNDS; i++)
     {
@@ -72,9 +65,9 @@ void rc6_encrypt(uint32_t* key, void* input, void* output)
         C = ROTL(C ^ T1, T0) + *k; k++;
 
         T0 = A;
-        A = B; 
-        B = C; 
-        C = D; 
+        A = B;
+        B = C;
+        C = D;
         D = T0;
     }
 
@@ -87,6 +80,23 @@ void rc6_encrypt(uint32_t* key, void* input, void* output)
     printf("D: %08x\n", D);
 
     // uint32에 있는 값을 4개의 uint8_t로 나누어 저장
+    uint8_t* out = (uint8_t*)output;
+    out[3] = A >> 24;
+    out[2] = A >> 16;
+    out[1] = A >> 8;
+    out[0] = A;
+    out[7] = B >> 24;
+    out[6] = B >> 16;
+    out[5] = B >> 8;
+    out[4] = B;
+    out[11] = C >> 24;
+    out[10] = C >> 16;
+    out[9] = C >> 8;
+    out[8] = C;
+    out[15] = D >> 24;
+    out[14] = D >> 16;
+    out[13] = D >> 8;
+    out[12] = D;
 }
 
 void test_rc6() {
@@ -101,8 +111,8 @@ void test_rc6() {
     rc6_key_schedule(key, user_key, sizeof(user_key));
 
     printf("User Key: ");
-    for(int i = 0; i < 4; i++) {
-        printf("%08x ", user_key[i]);
+    for(int i = 0; i <16; i++) {
+        printf("%x ", user_key[i]);
     }
     printf("\n");
     printf("Key Schedule: ");
@@ -112,8 +122,8 @@ void test_rc6() {
     printf("\n");
 
     printf("PlainText: ");
-    for(int i = 0; i < 4; i++) {
-        printf("%08x ", plain[i]);
+    for(int i = 0; i < 16; i++) {
+        printf("%x ", plain[i]);
     }
     printf("\n");
 
@@ -122,8 +132,8 @@ void test_rc6() {
     rc6_encrypt(key, plain, cipher);
 
     printf("CipherText: ");
-    for(int i = 0; i < 4; i++) {
-        printf("%08x ", cipher[i]);
+    for(int i = 0; i < 16; i++) {
+        printf("%02x", cipher[i]);
     }
     printf("\n");
 }
