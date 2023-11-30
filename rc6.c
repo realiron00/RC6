@@ -13,99 +13,99 @@
 
 void rc6_key_schedule(uint32_t* key, void* round_keys, uint32_t key_len)
 {
-    uint32_t i, j, k, A, B, L[8], *kptr=(uint32_t*)round_keys;
+    uint32_t temp_a, temp_b;
+    uint32_t temp[8];
+    uint32_t *temp_rk=(uint32_t*)round_keys;
 
-    for(i = 0; i < key_len / 4; i++)
-        L[i] = kptr[i];
+    for(uint32_t i = 0; i < key_len / 4; i++)
+        temp[i] = temp_rk[i];
     
-    A = RC6_P;
+    temp_a = RC6_P;
 
-    for(i = 0; i < key_size; i++)
+    for(uint32_t i = 0; i < key_size; i++)
     {
-        key[i] = A;
-        A += RC6_Q;
+        key[i] = temp_a;
+        temp_a += RC6_Q;
     }
+    uint32_t j, temp_key;
+    temp_a = temp_b = j = temp_key = 0;
 
-    A = B = i = j = 0;
-
-    for(k=0; k < key_size * 3; k++)
+    for(uint32_t i=0; i < key_size * 3; i++)
     {
-        A = key[i] = ROTL(key[i] + A + B, 3);
+        temp_a = key[j] = ROTL(key[j] + temp_a + temp_b, 3);
 
-        B = L[j] = ROTL(L[j] + A + B, A + B);
+        temp_b = temp[temp_key] = ROTL(temp[temp_key] + temp_a + temp_b, temp_a + temp_b);
         
-        i++;
-        i %= key_size;
-
         j++;
-        j %= key_len / 4;
+        j %= key_size;
+
+        temp_key++;
+        temp_key %= key_len / 4;
     }
 }
 
-void rc6_encrypt(uint32_t* key, void* input, void* output)
+void rc6_encrypt(uint32_t* key, void* plain, void* cipher)
 {
-    uint32_t A, B, C, D, T0, T1, i;
-    uint32_t* k = (uint32_t*)key;
-    uint32_t* in = (uint32_t*)input;
+    uint32_t temp_a, temp_b, temp_c, temp_d;
+    uint32_t t0, t1;
+    uint32_t* temp_key = (uint32_t*)key;
+    uint32_t* temp_plain = (uint32_t*)plain;
 
-    A = in[0];
-    B = in[1];
-    C = in[2];
-    D = in[3];
+    temp_a = temp_plain[0];
+    temp_b = temp_plain[1];
+    temp_c = temp_plain[2];
+    temp_d = temp_plain[3];
 
-    B += *k; k++;
-    D += *k; k++;
+    temp_b += *temp_key; 
+    temp_key++;
+    temp_d += *temp_key; 
+    temp_key++;
 
-    for(i = 0; i < ROUNDS; i++)
+    for(uint32_t i = 0; i < ROUNDS; i++)
     {
-        T0 = ROTL(B * (2 * B + 1), 5);
-        T1 = ROTL(D * (2 * D + 1), 5);
+        t0 = ROTL(temp_b * (2 * temp_b + 1), 5);
+        t1 = ROTL(temp_d * (2 * temp_d + 1), 5);
 
-        A = ROTL(A ^ T0, T1) + *k; k++;
-        C = ROTL(C ^ T1, T0) + *k; k++;
+        temp_a = ROTL(temp_a ^ t0, t1) + *temp_key; temp_key++;
+        temp_c = ROTL(temp_c ^ t1, t0) + *temp_key; temp_key++;
 
-        T0 = A;
-        A = B;
-        B = C;
-        C = D;
-        D = T0;
+        t0 = temp_a;
+        temp_a = temp_b;
+        temp_b = temp_c;
+        temp_c = temp_d;
+        temp_d = t0;
     }
 
-    A += *k; k++;
-    C += *k; k++;
-
-    printf("A: %08x\n", A);
-    printf("B: %08x\n", B);
-    printf("C: %08x\n", C);
-    printf("D: %08x\n", D);
+    temp_a += *temp_key; temp_key++;
+    temp_c += *temp_key; temp_key++;
 
     // uint32에 있는 값을 4개의 uint8_t로 나누어 저장
-    uint8_t* out = (uint8_t*)output;
-    out[3] = A >> 24;
-    out[2] = A >> 16;
-    out[1] = A >> 8;
-    out[0] = A;
-    out[7] = B >> 24;
-    out[6] = B >> 16;
-    out[5] = B >> 8;
-    out[4] = B;
-    out[11] = C >> 24;
-    out[10] = C >> 16;
-    out[9] = C >> 8;
-    out[8] = C;
-    out[15] = D >> 24;
-    out[14] = D >> 16;
-    out[13] = D >> 8;
-    out[12] = D;
+    uint8_t* out = (uint8_t*)cipher;
+    out[3] = temp_a >> 24;
+    out[2] = temp_a >> 16;
+    out[1] = temp_a >> 8;
+    out[0] = temp_a;
+    out[7] = temp_b >> 24;
+    out[6] = temp_b >> 16;
+    out[5] = temp_b >> 8;
+    out[4] = temp_b;
+    out[11] = temp_c >> 24;
+    out[10] = temp_c >> 16;
+    out[9] = temp_c >> 8;
+    out[8] = temp_c;
+    out[15] = temp_d >> 24;
+    out[14] = temp_d >> 16;
+    out[13] = temp_d >> 8;
+    out[12] = temp_d;
 }
 
-void test_rc6() {
-    // 키와 평문 초기화
+int main() {
+    // key and plain text
     uint32_t key[key_size];
     uint8_t plain[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-    // 키 스케줄링
+    // key schedule
     uint8_t user_key[] = {0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     rc6_key_schedule(key, user_key, sizeof(user_key));
@@ -127,7 +127,7 @@ void test_rc6() {
     }
     printf("\n");
 
-    // 암호화 수행
+    // encryption
     uint8_t cipher[16];
     rc6_encrypt(key, plain, cipher);
 
@@ -136,9 +136,4 @@ void test_rc6() {
         printf("%02x", cipher[i]);
     }
     printf("\n");
-}
-
-int main() {
-    test_rc6();
-    return 0;
 }
