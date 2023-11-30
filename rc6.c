@@ -79,7 +79,6 @@ void rc6_encrypt(uint32_t* key, void* plain, void* cipher)
     temp_a += *temp_key; temp_key++;
     temp_c += *temp_key; temp_key++;
 
-    // uint32에 있는 값을 4개의 uint8_t로 나누어 저장
     uint8_t* out = (uint8_t*)cipher;
     out[3] = temp_a >> 24;
     out[2] = temp_a >> 16;
