@@ -11,74 +11,113 @@
   (UV((v) << (n)) | ((v) >> (32 - (n))))
 #define ROTR(v, n) ROTL(v, 32 - (n))
 
-void rc6_key_schedule(uint32_t* key, void* round_keys, uint32_t key_len)
+/*********************************************************************
+ * rc6_key_schedule: Generates the key schedule for the RC6 algorithm.
+ *
+ * Parameters:
+ *   round_key: The buffer to store the key schedule in.
+ *   keys: The key to use for the key schedule.
+ *   key_len: The length of the key in bytes.
+ ********************************************************************/
+void rc6_key_schedule(uint32_t* round_key, void* keys, uint32_t key_len)
 {
-    uint32_t temp_a, temp_b;
-    uint32_t temp[8];
-    uint32_t *temp_rk=(uint32_t*)round_keys;
+    /* temp_p = RC6_P */
+    uint32_t temp_p;
+    temp_p = RC6_P;
 
-    for(uint32_t i = 0; i < key_len / 4; i++)
-        temp[i] = temp_rk[i];
-    
-    temp_a = RC6_P;
+    /* store the key in temp */
+    uint32_t *temp_k=(uint32_t*)keys; // temp_k = key
 
-    for(uint32_t i = 0; i < key_size; i++)
-    {
-        key[i] = temp_a;
-        temp_a += RC6_Q;
+    /* round_key[0] = RC6_p */
+    round_key[0] = temp_p;
+
+    for(uint32_t i = 1; i < key_size; i++)
+    {   
+        /* round_key[i] = round_key[i-1] + RC6_Q */
+        round_key[i] = round_key[i-1] + RC6_Q;
     }
-    uint32_t j, temp_key;
-    temp_a = temp_b = j = temp_key = 0;
 
-    for(uint32_t i=0; i < key_size * 3; i++)
+    uint32_t temp_x, temp_y, i, j;
+    temp_x = temp_y = i = j = 0;
+
+    for(uint32_t k = 0; k < 3 * key_size; k++)
     {
-        temp_a = key[j] = ROTL(key[j] + temp_a + temp_b, 3);
+        /* temp_x = round_key[i] = (round_key[i] + x + y) <<< 3 */
+        temp_x = round_key[i] = ROTL(round_key[i] + temp_x + temp_y, 3);
 
-        temp_b = temp[temp_key] = ROTL(temp[temp_key] + temp_a + temp_b, temp_a + temp_b);
-        
+        /* temp_y = temp_k[j] = (temp_k[j] + x + y) <<< (x + y) */
+        temp_y = temp_k[j] = ROTL(temp_k[j] + temp_x + temp_y, temp_x + temp_y);
+
+        /* i = (i + 1) % key_size */
+        i++;
+        i %= key_size;
+
+        /* j = (j + 1) % key_len */
         j++;
-        j %= key_size;
-
-        temp_key++;
-        temp_key %= key_len / 4;
+        j %= key_len / 4;
     }
 }
 
+
+/*********************************************************************
+ * rc6_encrypt: Encrypts a block of data using the RC6 algorithm.
+ *
+ * Parameters:
+ *   key: The key schedule to use for encryption.
+ *   plain: The data to encrypt.
+ *   cipher: The buffer to store the encrypted data in.
+ ********************************************************************/
 void rc6_encrypt(uint32_t* key, void* plain, void* cipher)
 {
+    /* Divide the plain text into 4 32-bit words */
     uint32_t temp_a, temp_b, temp_c, temp_d;
     uint32_t t0, t1;
     uint32_t* temp_key = (uint32_t*)key;
     uint32_t* temp_plain = (uint32_t*)plain;
 
+    /* store the plain text divided into 4 32-bit words in temp */
     temp_a = temp_plain[0];
     temp_b = temp_plain[1];
     temp_c = temp_plain[2];
     temp_d = temp_plain[3];
 
+    /* temp_b = temp_b + round_key[0] */
     temp_b += *temp_key; 
     temp_key++;
+
+    /* temp_d = temp_d + round_key[1] */
     temp_d += *temp_key; 
     temp_key++;
 
     for(uint32_t i = 0; i < ROUNDS; i++)
     {
+        /* t0 = (temp_b * (2 * temp_b + 1)) <<< 5 */
         t0 = ROTL(temp_b * (2 * temp_b + 1), 5);
+
+        /* t1 = (temp_d * (2 * temp_d + 1)) <<< 5 */
         t1 = ROTL(temp_d * (2 * temp_d + 1), 5);
 
+        /* temp_a = ((temp_a ^ t0) <<< t1) + round_key[2 * i + 2] */
         temp_a = ROTL(temp_a ^ t0, t1) + *temp_key; temp_key++;
+
+        /* temp_c = ((temp_c^t1) <<< t0) + round_key[2 * i + 3] */
         temp_c = ROTL(temp_c ^ t1, t0) + *temp_key; temp_key++;
 
+        /* (temp_a, temp_b, temp_c, temp_d) = (temp_b, temp_c, temp_d, temp_a) */
         t0 = temp_a;
         temp_a = temp_b;
         temp_b = temp_c;
         temp_c = temp_d;
         temp_d = t0;
     }
-
+    
+    /* temp_a = temp_a + round_key[2 * ROUNDS + 2] */
     temp_a += *temp_key; temp_key++;
+
+    /* temp_c = temp_c + round_key[2 * ROUNDS + 3] */
     temp_c += *temp_key; temp_key++;
 
+    /* store the cipher text in cipher */
     uint8_t* out = (uint8_t*)cipher;
     out[3] = temp_a >> 24;
     out[2] = temp_a >> 16;
