@@ -1,4 +1,7 @@
 # RC6
-## 2023 UROP
+RC6 encryption algorithm
 
-RC6
+## 2023 UROP
+3학년 2학기 연구참여과정 프로젝트
+
+## Files
